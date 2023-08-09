@@ -3,6 +3,7 @@ mod decompress;
 
 use clap::{Arg, Command};
 use compress::compress;
+use decompress::decompress;
 
 fn main() {
     let matches = Command::new("Kozuchi")
@@ -44,7 +45,7 @@ fn main() {
                 .get_one::<String>("output")
                 .unwrap_or(&default_output_file_path);
 
-            compress(input_file_path, &output_file_path);
+            decompress(input_file_path, &output_file_path);
         }
         _ => {}
     }
