@@ -14,7 +14,7 @@ fn take_run_lengths(input: &mut Peekable<std::io::Bytes<std::fs::File>>) -> [u8;
     return run_lengths;
 }
 
-pub fn decompress(input_file_path: &str, output_file_path: &str) {
+pub fn run(input_file_path: &str, output_file_path: &str) {
     let input_file = std::fs::File::open(input_file_path).unwrap();
     let mut output_file = std::fs::File::create(output_file_path).unwrap();
 

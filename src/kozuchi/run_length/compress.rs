@@ -51,7 +51,7 @@ fn write_block_bytes(
         .unwrap();
 }
 
-pub fn compress(input_file_path: &str, output_file_path: &str) {
+pub fn run(input_file_path: &str, output_file_path: &str) {
     let input_file = File::open(input_file_path).unwrap();
     let mut output_file = File::create(output_file_path).unwrap();
 
