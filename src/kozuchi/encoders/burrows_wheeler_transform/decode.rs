@@ -48,8 +48,16 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
                     return None;
                 }
 
-                let block_length = self.input.next()? as usize + 1;
-                let index = self.input.next()?;
+                let mut block_length = 0;
+                for _ in 0..super::BYTE_WIDTH {
+                    block_length = (block_length << 8) + (self.input.next()? as usize);
+                }
+                block_length += 1;
+
+                let mut index = 0;
+                for _ in 0..super::BYTE_WIDTH {
+                    index = (index << 8) + (self.input.next()? as usize);
+                }
                 let chunk = self
                     .input
                     .by_ref()
