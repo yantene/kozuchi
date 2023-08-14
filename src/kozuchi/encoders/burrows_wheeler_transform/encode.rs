@@ -27,8 +27,6 @@ pub fn transform(block: Vec<u8>) -> (Vec<u8>, usize) {
     (sorted, index)
 }
 
-const CHUNK_SIZE: usize = 256;
-
 pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<Item = u8> + 'a {
     struct Encoded<'a, I: Iterator<Item = u8> + 'a> {
         input: I,
@@ -41,7 +39,11 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
 
         fn next(&mut self) -> Option<Self::Item> {
             if self.current_chunk.len() == 0 {
-                let chunk = self.input.by_ref().take(CHUNK_SIZE).collect::<Vec<_>>();
+                let chunk = self
+                    .input
+                    .by_ref()
+                    .take(2usize.pow(8 * super::BYTE_WIDTH as u32))
+                    .collect::<Vec<_>>();
 
                 if chunk.len() == 0 {
                     return None;
@@ -49,7 +51,14 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
 
                 let (transformed_block, index) = transform(chunk);
 
-                self.current_chunk = vec![(transformed_block.len() - 1) as u8, index as u8];
+                self.current_chunk = vec![];
+                for octet in (0..super::BYTE_WIDTH).rev() {
+                    self.current_chunk
+                        .push(((transformed_block.len() - 1) >> (8 * octet)) as u8);
+                }
+                for octet in (0..super::BYTE_WIDTH).rev() {
+                    self.current_chunk.push((index >> (8 * octet)) as u8);
+                }
                 self.current_chunk.extend(transformed_block);
             }
 
