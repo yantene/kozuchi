@@ -9,19 +9,15 @@ fn shift_and_append_eos(block: &Vec<u8>) -> Vec<u16> {
     block_with_eos
 }
 
-pub fn transform(block: Vec<u8>) -> (Vec<u8>, usize, usize) {
+pub fn transform(block: Vec<u8>) -> (Vec<u8>, usize) {
     let block_with_eos = shift_and_append_eos(&block);
     let indices = construct_suffix_array_by_induced_sorting(&block_with_eos);
 
-    let mut eos_index = 0;
-
     let sorted = indices
         .iter()
-        .enumerate()
-        .map(|(seq, index)| {
+        .map(|index| {
             if *index == 0 {
                 // EOS
-                eos_index = seq;
                 return 0;
             };
 
@@ -31,7 +27,7 @@ pub fn transform(block: Vec<u8>) -> (Vec<u8>, usize, usize) {
 
     let index = indices.iter().position(|i| *i == 0).unwrap();
 
-    (sorted, index, eos_index)
+    (sorted, index)
 }
 
 pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<Item = u8> + 'a {
@@ -56,14 +52,9 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
                     return None;
                 }
 
-                let (transformed_block, index, eos_index) = transform(chunk);
+                let (transformed_block, index) = transform(chunk);
 
                 self.current_chunk = vec![];
-
-                // the EOS byte index
-                for octet in (0..super::BYTE_WIDTH).rev() {
-                    self.current_chunk.push((eos_index >> (8 * octet)) as u8);
-                }
 
                 // size of the block
                 for octet in (0..super::BYTE_WIDTH).rev() {
@@ -96,9 +87,9 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_transform() {
+    fn test_transform1() {
         let block = vec![2u8, 0u8, 1u8, 0u8];
-        let (sorted, index, eos_index) = transform(block);
+        let (sorted, index) = transform(block);
 
         // $: EOS           sorted
         //                    v
@@ -109,10 +100,28 @@ mod tests {
         // 4| 0: [2, 0, 1, 0, $] <- index
         let expected_sorted = vec![0u8, 1u8, 2u8, 0u8, 0u8];
         let expected_index = 4;
-        let expected_eos_index = 4;
 
         assert_eq!(sorted, expected_sorted);
         assert_eq!(index, expected_index);
-        assert_eq!(eos_index, expected_eos_index);
+    }
+
+    #[test]
+    fn test_transform2() {
+        let block = vec![1u8, 0u8, 1u8, 0u8, 2u8];
+        let (sorted, index) = transform(block);
+
+        // $: EOS              sorted
+        //                       v
+        // 0| ?: [$, 1, 0, 1, 0, 2]
+        // 1| 1: [0, 1, 0, 2, $, 1]
+        // 2| 3: [0, 2, $, 1, 0, 1]
+        // 3| 0: [1, 0, 1, 0, 2, $] <- index
+        // 4| 2: [1, 0, 2, $, 1, 0]
+        // 5| 4: [2, $, 1, 0, 1, 0]
+        let expected_sorted = vec![2u8, 1u8, 1u8, 0u8, 0u8, 0u8];
+        let expected_index = 3;
+
+        assert_eq!(sorted, expected_sorted);
+        assert_eq!(index, expected_index);
     }
 }
