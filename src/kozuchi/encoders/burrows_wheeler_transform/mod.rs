@@ -12,3 +12,5 @@ mod decode;
 pub fn decode<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<Item = u8> + 'a {
     decode::run(input)
 }
+
+mod suffix_array;

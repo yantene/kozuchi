@@ -1,35 +1,39 @@
 use std::{iter::Peekable, marker::PhantomData};
 
-/**
- * Returns the rank of each item in the block.
- * The rank of an item is the number of items that are smaller than the item.
- * If there are multiple items with the same value, the item with the smaller index is considered smaller.
- */
-fn rank(block: &Vec<u8>) -> Vec<usize> {
-    let mut rank = vec![0; block.len()];
-
-    for i in 0..block.len() {
-        for j in 0..block.len() {
-            if block[i] > block[j] || block[i] == block[j] && i > j {
-                rank[i] += 1;
-            }
-        }
-    }
-
-    rank
-}
-
 pub fn inverse_transform(block: Vec<u8>, index: usize) -> Vec<u8> {
-    let order_map = rank(&block);
+    // O(n)
+    let block_with_eos = {
+        let mut block_with_eos = block.iter().map(|e| *e as u16 + 1).collect::<Vec<_>>();
+        block_with_eos[index] = 0;
 
-    let mut result = Vec::with_capacity(block.len());
-    let mut cursor = index;
-    for _ in 0..block.len() {
-        result.insert(0, block[cursor]);
-        cursor = order_map[cursor];
+        block_with_eos
+    };
+
+    let mut appearance_count = vec![0; block_with_eos.len()];
+    let mut cum_freq = vec![0; 65536 + 1];
+
+    // O(n)
+    for (block_index, &byte) in block_with_eos.iter().enumerate() {
+        appearance_count[block_index] = cum_freq[byte as usize + 1];
+        cum_freq[byte as usize + 1] += 1;
     }
 
-    result
+    // O(n)
+    for cf_index in 1..cum_freq.len() {
+        cum_freq[cf_index] += cum_freq[cf_index - 1];
+    }
+
+    let mut result = vec![];
+    let mut cursor = index;
+    // O(n)
+    for _ in 0..block_with_eos.len() {
+        let byte = block_with_eos[cursor];
+        result.insert(0, byte);
+        cursor = cum_freq[byte as usize] + appearance_count[cursor];
+    }
+    result.pop();
+
+    result.iter().map(|e| (*e - 1) as u8).collect::<Vec<_>>()
 }
 
 pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<Item = u8> + 'a {
@@ -48,23 +52,27 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
                     return None;
                 }
 
+                // size of the block
                 let mut block_length = 0;
                 for _ in 0..super::BYTE_WIDTH {
                     block_length = (block_length << 8) + (self.input.next()? as usize);
                 }
                 block_length += 1;
 
+                // block sort index
                 let mut index = 0;
                 for _ in 0..super::BYTE_WIDTH {
                     index = (index << 8) + (self.input.next()? as usize);
                 }
+
+                // the block itself
                 let chunk = self
                     .input
                     .by_ref()
                     .take(block_length as usize)
                     .collect::<Vec<_>>();
 
-                self.current_chunk = inverse_transform(chunk, index as usize);
+                self.current_chunk = inverse_transform(chunk, index);
             }
 
             Some(self.current_chunk.remove(0))
@@ -84,14 +92,13 @@ mod tests {
 
     #[test]
     fn test_inverse_transform() {
-        let block = "BNN^AA|A".chars().map(|c| c as u8).collect();
-        let index = 6;
-
+        let block = vec![0u8, 1u8, 2u8, 0u8, 0u8];
+        let index = 4;
         let original = inverse_transform(block, index);
 
-        assert_eq!(
-            original,
-            "^BANANA|".chars().map(|c| c as u8).collect::<Vec<u8>>()
-        )
+        // cf. the comment in `test_transform()`
+        let expected_original = vec![2u8, 0u8, 1u8, 0u8];
+
+        assert_eq!(original, expected_original);
     }
 }
