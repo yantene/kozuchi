@@ -40,16 +40,19 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
 
                 let mut block_run_lengths = Vec::new();
                 let mut block_bytes = Vec::new();
-                for block_index in 0u8..=255u8 {
-                    if self.input.peek().is_none() {
+
+                loop {
+                    if self.input.peek().is_none() || block_bytes.len() == 256 {
                         break;
                     }
 
                     let (byte, run_length) = take_run_length(&mut self.input).unwrap();
 
-                    if run_length > 0 {
+                    if run_length == 1 && block_bytes.len() <= 254 {
+                        block_bytes.push(byte);
+                    } else if run_length > 0 {
                         block_run_lengths.push(run_length);
-                        block_run_lengths.push(block_index);
+                        block_run_lengths.push(block_bytes.len() as u8);
                     }
                     block_bytes.push(byte);
                 }
