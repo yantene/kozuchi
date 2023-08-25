@@ -4,7 +4,7 @@ pub fn inverse_transform(block: Vec<u8>, index: usize) -> Vec<u8> {
     // O(n)
     let block_with_eos = {
         let mut block_with_eos = block.iter().map(|e| *e as u16 + 1).collect::<Vec<_>>();
-        block_with_eos[index] = 0;
+        block_with_eos.insert(index, 0);
 
         block_with_eos
     };

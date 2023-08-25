@@ -15,13 +15,13 @@ pub fn transform(block: Vec<u8>) -> (Vec<u8>, usize) {
 
     let sorted = indices
         .iter()
-        .map(|index| {
+        .filter_map(|index| {
+            // Remove EOS
             if *index == 0 {
-                // EOS
-                return 0;
+                return None;
             };
 
-            *block.get((*index + block.len() - 1) % block.len()).unwrap()
+            Some(*block.get((*index + block.len() - 1) % block.len()).unwrap())
         })
         .collect::<Vec<_>>();
 
