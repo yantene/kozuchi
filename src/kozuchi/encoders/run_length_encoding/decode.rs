@@ -3,13 +3,14 @@ use std::{iter::Peekable, marker::PhantomData};
 fn take_block_run_lengths<'a>(input: &mut Peekable<impl Iterator<Item = u8> + 'a>) -> [u8; 256] {
     let mut run_lengths_map = [0u8; 256];
 
-    while input.peek().is_some() && &0 != input.peek().unwrap() {
-        let run_length = input.next().unwrap();
-        let index = input.next().unwrap();
+    while let Some(run_length) = input.next() {
+        if run_length == 0 {
+            break;
+        }
 
+        let index = input.next().unwrap();
         run_lengths_map[index as usize] = run_length;
     }
-    input.next();
 
     return run_lengths_map;
 }
@@ -30,18 +31,16 @@ pub fn run<'a, I: Iterator<Item = u8> + 'a>(input: &'a mut I) -> impl Iterator<I
                     return None;
                 }
 
-                while self.input.peek().is_some() {
-                    let run_lengths_map = take_block_run_lengths(&mut self.input);
+                let run_lengths_map = take_block_run_lengths(&mut self.input);
 
-                    for index in 0u8..=255u8 {
-                        let byte = match self.input.next() {
-                            Some(byte) => byte,
-                            None => break,
-                        };
+                for index in 0u8..=255u8 {
+                    let byte = match self.input.next() {
+                        Some(byte) => byte,
+                        None => break,
+                    };
 
-                        self.current_chunk
-                            .extend(vec![byte; run_lengths_map[index as usize] as usize + 1]);
-                    }
+                    self.current_chunk
+                        .extend(vec![byte; run_lengths_map[index as usize] as usize + 1]);
                 }
             }
 
